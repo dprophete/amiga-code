@@ -28,7 +28,6 @@
 
             move.w     DMACONR(a6),dma_save         ; save current DMA
             move.w     #$7fff,DMACON(a6)            ; reset DMA
-            move.w     #$8380,DMACON(a6)            ; enable copper + bitplane
 
             jsr        run
 

@@ -14,6 +14,7 @@ H       = 256
 ;--------------------------------------------------------------------------------
 run:       
             lea        CUSTOM,a6
+            move.w     #$8380,DMACON(a6)               ; enable copper + bitplane
             bsr        init_bpls
             bsr        init_copper
             move.l     #copper,COP1LC(a6)              ; set new copper

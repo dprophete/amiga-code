@@ -12,7 +12,7 @@ NB_COLOR_LINES        = 128
 ;--------------------------------------------------------------------------------
 run:       
             lea        CUSTOM,a6
-            move.w     #$0100,DMACON(a6)                                 ; no bitplane DMA: base enables it, this demo has no bitplanes
+            move.w     #$8280,DMACON(a6)                                 ; enable copper + bitplane
             bsr        init_copper
             move.l     #copper,COP1LC(a6)                                ; set new copper
             move.w     #$0,COPJMP1(a6)                                   ; activate copper
