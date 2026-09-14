@@ -1,11 +1,22 @@
 ;================================================================================
-; simple display of bitplanes
+; showing raw image of king tut
+; + reflexion
 ;================================================================================
 
 ;---------- Const ----------
-NB_BPLS = 2
-W       = 320
-H       = 256
+; largeur effective = (DDFSTOP-DDFSTART)*2+16 == 320/8
+NB_BPLS   = 2
+W         = 320                                                           ; -> will require modulo
+H         = 256
+; if non IL W/8*H         ; if IL :   W/8 
+BPL_SIZE  = W/8
+
+; if non IL W/8           ; if IL : W/8*NB_BPLS
+LINE_SIZE = W/8*NB_BPLS                                                   
+
+; if non IL : largeur ligne memoire - largeur effective
+; if IL : W/8*NB_BPLS-largeur effective
+MODULO    = W/8*NB_BPLS-320/8                                                
 
 
 ;--------------------------------------------------------------------------------
@@ -13,14 +24,21 @@ H       = 256
 ;--------------------------------------------------------------------------------
 run:       
             lea        CUSTOM,a6
-            move.w     #$8380,DMACON(a6)               ; enable copper + bitplane
+            move.w     #$8380,DMACON(a6)                                  ; enable copper + bitplane
             bsr        init_bpls
             bsr        init_copper
-            move.l     #copper,COP1LC(a6)              ; set new copper
-            move.w     #$0,COPJMP1(a6)                 ; activate copper
+            move.l     #copper,COP1LC(a6)                                 ; set new copper
+            move.w     #$0,COPJMP1(a6)                                    ; activate copper
 
+            move.b     #$f1,bpls
+            move.b     #$8f,bpls+W/8-1
+            ; move.b     #$f1,bpls+W/8*(H-1)
+            ; move.b     #$8f,bpls+W/8-1+W/8*(H-1)
 main_loop:
-            bsr        wait_VBL
+            move.w     #$120,d1
+            bsr        wait_raster
+
+            ; bsr        wait_VBL
     		; mouse test
             btst       #6,$bfe001
             bne.b      main_loop
@@ -43,13 +61,8 @@ init_bpls:
             move.w     d0,2(a0)
             swap       d0
             add.l      #8,a0
-            add.l      #W/8*H,d0
+            add.l      #BPL_SIZE,d0
             dbf        d2,.init_copper_bpl
-
-            move.b     #$f1,bpls
-            move.b     #$8f,bpls+W/8-1
-            move.b     #$f1,bpls+W/8*(H-1)
-            move.b     #$8f,bpls+W/8-1+W/8*(H-1)
             rts
 
 ;--------------------------------------------------------------------------------
@@ -66,11 +79,15 @@ var_tab__:  dc.w       0
 
             even
 copper:      
-            dc.w       BPLCON0, NB_BPLS<<12 + $0200    ; 2 bitplaces
+            dc.w       $1FC,0                                             ; compat. AGA
+            dc.w       BPLCON0, NB_BPLS<<12+$0200                         ; 2 bitplaces
             dc.w       DIWSTRT, $2c81
             dc.w       DIWSTOP, $2cc1
             dc.w       DDFSTRT, $38
-            dc.w       DDFSTOP, $D0
+            dc.w       DDFSTOP, $d0
+            dc.w       BPL1MOD, MODULO
+            dc.w       BPL2MOD, MODULO
+
 copper_bpls:
             dc.w       BPL1PTH, $0
             dc.w       BPL1PTL, $0
@@ -85,22 +102,18 @@ copper_bpls:
             dc.w       BPL6PTH, $0
             dc.w       BPL6PTL, $0
 
-            ; default colors
-            dc.w       $180, $420
-            dc.w       $182, $0f0
-            dc.w       $184, $f8f
-            dc.w       $186, $00f
-            dc.w       $180, $f00
-            dc.w       $182, $0f0
-
             ; top of the screen
             dc.w       $2507, $fffe, $180,$f00
             dc.w       $2607, $fffe, $180,$000
 
-            dc.w       $ffdf, $fffe                    ; Wait for vpos >= 0xff and hpos >= 0xde
+           ; default colors
+            dc.w       $0180,$0000,$0182,$0f00,$0184,$00f0,$0186,$0ff0
+
+            dc.w       $ffdf, $fffe                                       ; Wait for vpos >= 0xff and hpos >= 0xde
             ; bottom of the screen
-            dc.w       $3201, $fffe, $180, $f00        ; Wait for vpos >= 0x2c
+            dc.w       $3201, $fffe, $180, $f00                           ; Wait for vpos >= 0x2c
             dc.w       $ffff, $fffe
 
+            even
 bpls:
-            dcb.b      W/8*H*NB_BPLS,0
+            dcb.b      W/8*H*NB_BPLS,$00
