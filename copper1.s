@@ -1,14 +1,8 @@
-;------------------------------
+;================================================================================
 ; - copperbars on a sin wave
 ; - thin 1 line copper bar with multiple colors
-;
-;---------- Includes ----------
-            INCDIR     "include"
-            INCLUDE    "hw.i"
-            INCLUDE    "funcdef.i"
-            INCLUDE    "exec/exec_lib.i"
-            INCLUDE    "graphics/graphics_lib.i"
-            INCLUDE    "hardware/cia.i"
+;================================================================================
+
 ;---------- Const ----------
 TOP_COLOR_LINE        = $50
 NB_COLOR_LINES        = 128
@@ -16,26 +10,9 @@ NB_COLOR_LINES        = 128
 ;--------------------------------------------------------------------------------
 ; main
 ;--------------------------------------------------------------------------------
-main:       
-            movem.l    d0-a6,-(sp)
-            move.l     4.w,a6                                            ; execbase
-            ; clr.l      d0
-            ; move.l     #gfxname,a6
-            ; jsr        -408(a6)
-            ; move.l     d0,a1
-            ; move.l     38(a1),copper_save                                ; save current copper
-            ; jsr        -414(a6)
-            move.l     156(a6),a6
-            move.l     38(a6),copper_save                                ; save current copper
-
-
+run:       
             lea        CUSTOM,a6
-            bsr        wait_VBL
-
-            move.w     DMACONR(a6),dma_save                              ; save current DMA
-            move.w     #$7fff,DMACON(a6)                                 ; reset DMA
-            move.w     #$8280,DMACON(a6)                                 ; enable copper
-            ; bsr        init_bpls
+            move.w     #$0100,DMACON(a6)                                 ; no bitplane DMA: base enables it, this demo has no bitplanes
             bsr        init_copper
             move.l     #copper,COP1LC(a6)                                ; set new copper
             move.w     #$0,COPJMP1(a6)                                   ; activate copper
@@ -50,16 +27,6 @@ main_loop:
     		; mouse test
             btst       #6,$bfe001
             bne.b      main_loop
-exit:
-            lea        CUSTOM,a6
-            bsr        wait_VBL
-            move.l     copper_save,COP1LC(a6)                            ; restore previous copper list
-            move.l     #$0,COPJMP1(a6)                                   ; activate copper
-            move.w     #$7fff,DMACON(a6)                                 ; reset DMA
-            or.w       #$8200,dma_save                                   ; re-enable DMA with copper bit set
-            move.w     dma_save,DMACON(a6)                               ; restore DMA control register state
-            movem.l    (sp)+,d0-a6
-            clr        d0                                                ; Return code of the program
             rts
 
 ;--------------------------------------------------------------------------------
@@ -83,7 +50,7 @@ init_copper:
             move.w     #$0180,(a0)+
             move.w     #$0110,(a0)+
             add        #1,d1
-            dbra       d0,.init_lines
+            dbf        d0,.init_lines
             add        #9,d1
 
             ; line below
@@ -134,7 +101,7 @@ draw_single_line:
             bne        .no
             moveq      #0,d0
 .no
-            dbra       d3,.loop
+            dbf        d3,.loop
             rts
 
 draw_bars:
@@ -144,7 +111,7 @@ draw_bars:
 .reset_lines:
             move.w     #$000,(a0)
             add        #8,a0
-            dbra       d0,.reset_lines
+            dbf        d0,.reset_lines
 
     		; update vertical position and increment
             addq.w     #3,(pos_bar0)
@@ -157,7 +124,7 @@ draw_bars:
             move.l     (a3)+,a1
             add.w      #30,d0
             bsr        draw_bar
-            dbra       d4,.draw
+            dbf        d4,.draw
             rts
 
 ; params: 
@@ -176,40 +143,15 @@ draw_bar:
 .bar:
             move.w     (a1)+,(a2)
             addq       #8,a2
-            dbra       d1,.bar
-            rts
-
-
-; check if we reach line
-; param: line: d1.w
-wait_raster: 
-            move.l     VPOSR(a6),d0
-            lsr.l      #8,d0
-            and.w      #$1ff,d0
-            cmp.w      d1,d0
-            bne.b      wait_raster
-            rts
-wait_VBL:
-            move.l     VPOSR(a6),d0
-            lsr.l      #8,d0
-            and.w      #$1FF,d0	
-            cmp.w      #$138,d0
-            bne        wait_VBL
+            dbf        d1,.bar
             rts
 
 ;--------------------------------------------------------------------------------
-; DATA
+; data
 ;--------------------------------------------------------------------------------
 
             even
 var_tab__:  dc.w       0
-gfxname: 
-            dc.b       'graphics.library',0
-            even
-copper_save:
-            dc.l       0
-dma_save:
-            dc.w       0
 pos_bar0:
             dc.w       0
 pos_line_above:
@@ -301,31 +243,7 @@ sin1:
 ;@generated-datagen-end----------------
 NB_SIN1               = *-sin1
 
-sin2:
-;@generated-datagen-start----------------
-; This code was generated by Amiga Assembly extension
-;
-;----- parameters : modify ------
-;expression(x as variable): round(cos(x*2*pi/64-pi)*20)+20
-;variable:
-;   name:x
-;   startValue:0
-;   endValue:31
-;   step:1
-;outputType(B,W,L): B
-;outputInHex: true
-;valuesPerLine: 8
-;--------------------------------
-;- DO NOT MODIFY following lines -
-            dc.b       $00, $00, $00, $01, $02, $02, $03, $05
-            dc.b       $06, $07, $09, $0b, $0c, $0e, $10, $12
-            dc.b       $14, $16, $18, $1a, $1c, $1d, $1f, $21
-            dc.b       $22, $23, $25, $26, $26, $27, $28, $28
-;@generated-datagen-end----------------
-NB_SIN2               = *-sin2
-
             even
-
 colors_single_line:
             ;#f00 -> $f0f
             dc.w       $f00, $f01, $f02, $f03, $f04, $f05, $f06, $f07
@@ -431,7 +349,7 @@ colors:
 NB_BARS               = (*-colors)/4
 
 ;--------------------------------------------------------------------------------
-; COPPER
+; copper
 ;--------------------------------------------------------------------------------
             section    data, data_c
 

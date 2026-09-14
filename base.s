@@ -1,5 +1,7 @@
+;--------------------------------------------------------------------------------
+; includes
+;--------------------------------------------------------------------------------
 
-;---------- Includes ----------
             INCDIR     "include"
             INCLUDE    "hw.i"
             INCLUDE    "funcdef.i"
@@ -10,8 +12,7 @@
 ;--------------------------------------------------------------------------------
 ; main
 ;--------------------------------------------------------------------------------
-in_:       
-            ; movem.l    d0-a6,-(sp)
+            movem.l    d0-a6,-(sp)
             move.l     4.w,a6                       ; execbase
             ; clr.l      d0
             ; move.l     #gfxname,a6
@@ -28,9 +29,9 @@ in_:
             move.w     DMACONR(a6),dma_save         ; save current DMA
             move.w     #$7fff,DMACON(a6)            ; reset DMA
             move.w     #$8380,DMACON(a6)            ; enable copper + bitplane
-            rts
 
-out_:
+            jsr        run
+
             lea        CUSTOM,a6
             bsr        wait_VBL
             move.l     copper_save,COP1LC(a6)       ; restore previous copper list
@@ -38,7 +39,7 @@ out_:
             move.w     #$7fff,DMACON(a6)            ; reset DMA
             or.w       #$8200,dma_save              ; re-enable DMA with copper bit set
             move.w     dma_save,DMACON(a6)          ; restore DMA control register state
-            ; movem.l    (sp)+,d0-a6
+            movem.l    (sp)+,d0-a6
             clr        d0                           ; Return code of the program
             rts
 
@@ -64,7 +65,7 @@ wait_VBL:
             rts
 
 ;--------------------------------------------------------------------------------
-; DATA
+; data
 ;--------------------------------------------------------------------------------
 
             even
