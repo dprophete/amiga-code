@@ -50,18 +50,24 @@
 ; check if we reach line
 ; param: line: d1.w
 wait_raster: 
-            move.l     VPOSR(a6),d0
+            move.l     d0,-(sp)
+.wait_raster: 
+            move.l     CUSTOM+VPOSR,d0
             lsr.l      #8,d0
             and.w      #$1ff,d0
             cmp.w      d1,d0
-            bne.b      wait_raster
+            bne.b      .wait_raster
+            move.l     (sp)+,d0
             rts
 wait_VBL:
-            move.l     VPOSR(a6),d0
+            move.l     d0,-(sp)
+.wait_VBL:
+            move.l     CUSTOM+VPOSR,d0
             lsr.l      #8,d0
             and.w      #$1FF,d0	
             cmp.w      #$138,d0
-            bne        wait_VBL
+            bne        .wait_VBL
+            move.l     (sp)+,d0
             rts
 
 ;--------------------------------------------------------------------------------
