@@ -24,20 +24,28 @@
             move.l     38(a6),copper_save           ; save current copper
 
             lea        CUSTOM,a6
-            bsr        wait_VBL
-
             move.w     DMACONR(a6),dma_save         ; save current DMA
+            move.w     INTENAR(a6),interna_save     ; save current interruptions
+
+            bsr        wait_VBL
             move.w     #$7fff,DMACON(a6)            ; reset DMA
+            move.w     #$7fff,INTENA(a6)            ; reset interruptions
+            move.w     #$7fff,INTREQ(a6)
 
             jsr        run
 
             lea        CUSTOM,a6
             bsr        wait_VBL
             move.l     copper_save,COP1LC(a6)       ; restore previous copper list
-            move.l     #$0,COPJMP1(a6)              ; activate copper
-            move.w     #$7fff,DMACON(a6)            ; reset DMA
+
             or.w       #$8200,dma_save              ; re-enable DMA with copper bit set
+            move.w     #$7fff,DMACON(a6)            ; reset DMA
             move.w     dma_save,DMACON(a6)          ; restore DMA control register state
+
+            or.w       #$C000,interna_save
+            move.w     #$7fff,INTENA(a6)            ; reset interruptions
+            move.w     interna_save,INTENA(a6)      ; restore interruptions
+
             movem.l    (sp)+,d0-a6
             clr        d0                           ; Return code of the program
             rts
@@ -81,4 +89,6 @@ gfxname:
 copper_save:
             dc.l       0
 dma_save:
+            dc.w       0
+interna_save:
             dc.w       0
