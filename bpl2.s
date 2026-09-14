@@ -1,22 +1,15 @@
 ;================================================================================
-; showing raw image of king tut
-; + reflexion
+; function to plot dots on a bitplane
 ;================================================================================
 
 ;---------- Const ----------
-; largeur effective = (DDFSTOP-DDFSTART)*2+16 == 320/8
+; largeur effective (LE) = (DDFSTOP-DDFSTART)*2+16 == 320/8
 NB_BPLS   = 2
-W         = 320                                                           ; -> will require modulo
+W         = 320
 H         = 256
-; if non IL W/8*H         ; if IL :   W/8 
-BPL_SIZE  = W/8
-
-; if non IL W/8           ; if IL : W/8*NB_BPLS
-LINE_SIZE = W/8*NB_BPLS                                                   
-
-; if non IL : largeur ligne memoire - largeur effective
-; if IL : W/8*NB_BPLS-largeur effective
-MODULO    = W/8*NB_BPLS-320/8                                                
+BPL_SIZE  = W/8                                                                  ; if non IL W/8*H         ; if IL : W/8 
+LINE_SIZE = W/8*NB_BPLS                                                          ; if non IL W/8           ; if IL : W/8*NB_BPLS
+MODULO    = W/8*NB_BPLS-320/8                                                    ; if non IL : W/8 - LE/8  ; if IL : W/8*NB_BPLS-LE/8
 
 
 ;--------------------------------------------------------------------------------
@@ -24,21 +17,22 @@ MODULO    = W/8*NB_BPLS-320/8
 ;--------------------------------------------------------------------------------
 run:       
             lea        CUSTOM,a6
-            move.w     #$8380,DMACON(a6)                                  ; enable copper + bitplane
+            move.w     #$8380,DMACON(a6)                                         ; enable copper + bitplane
             bsr        init_bpls
             bsr        init_copper
-            move.l     #copper,COP1LC(a6)                                 ; set new copper
-            move.w     #$0,COPJMP1(a6)                                    ; activate copper
+            move.l     #copper,COP1LC(a6)                                        ; set new copper
+            move.w     #$0,COPJMP1(a6)                                           ; activate copper
 
-            move.b     #$f1,bpls
-            move.b     #$8f,bpls+W/8-1
-            ; move.b     #$f1,bpls+W/8*(H-1)
-            ; move.b     #$8f,bpls+W/8-1+W/8*(H-1)
+
 main_loop:
-            move.w     #$120,d1
+            move.w     #$50,d1
             bsr        wait_raster
+            move.w     #$004,COLOR00(a6)
+            bsr        clear_bpls
+            move.w     #$044,COLOR00(a6)
+            bsr        plot_wave
+            move.w     #$000,COLOR00(a6)
 
-            ; bsr        wait_VBL
     		; mouse test
             btst       #6,$bfe001
             bne.b      main_loop
@@ -66,11 +60,116 @@ init_bpls:
             rts
 
 ;--------------------------------------------------------------------------------
+; misc
+;--------------------------------------------------------------------------------
+
+clear_bpls:
+            lea        bpls,a0
+            move.w     #W/32*H*NB_BPLS-1,d0
+.clear_loop:
+            clr.l      (a0)+
+            dbf        d0,.clear_loop
+            rts
+
+plot_wave:
+            ; draw circle
+            lea        bpls,a0
+            lea        sin1,a1
+            move.w     pos_sin1_x,d3                                             ;x idx
+            move.w     pos_sin1_y,d4                                             ;x idx
+            add.w      #4,d3
+            add.w      #2,d4
+            and.w      #(NB_SIN1*2)-1,d3
+            and.w      #(NB_SIN1*2)-1,d4
+            move.w     d3,pos_sin1_x
+            move.w     d4,pos_sin1_y
+            move       #1,d2                                                     ; set color
+
+            move.w     #32-1,d7                                                  ; nb dots
+.loop1:
+            move.w     (a1,d3),d0                                                ; set x coordinate
+            move.w     (a1,d4),d1                                                ; set x coordinate
+            bsr        plot_dot
+            add        #1,d2
+            cmp        #4,d2
+            bne.b      .skip_reset
+            move       #1,d2
+.skip_reset:
+
+            add.w      #2,d3
+            add.w      #4,d4
+            and.w      #(NB_SIN1*2)-1,d3
+            and.w      #(NB_SIN1*2)-1,d4
+            dbf        d7,.loop1
+            rts
+
+;a0: bpls, d0:x, d1:y, d2: color
+plot_dot:
+            movem.l    d0-d4/a0,-(a7)
+            mulu.w     #LINE_SIZE,d1
+            add.w      d1,a0
+            move.w     d0,d3
+            lsr.w      #3,d0
+            add.w      d0,a0
+            and.w      #7,d3
+            eor.w      #7,d3
+            ; need to figure out in which bitplane we want to set the bit
+            moveq      #NB_BPLS-1,d4
+.plot_in_bpl:
+            lsr.b      #1,d2
+            bcc        .not_in_bpl
+            bset       d3,(a0)
+.not_in_bpl:
+            add.l      #BPL_SIZE,a0
+            dbf        d4,.plot_in_bpl
+            movem.l    (a7)+,d0-d4/a0
+            rts
+
+;--------------------------------------------------------------------------------
 ; data
 ;--------------------------------------------------------------------------------
 
             even
 var_tab__:  dc.w       0
+pos_sin1_x:   
+            dc.w       0
+pos_sin1_y:   
+            dc.w       0
+
+sin1:
+;@generated-datagen-start----------------
+; This code was generated by Amiga Assembly extension
+;
+;----- parameters : modify ------
+;expression(x as variable): round(cos(x*2*pi/128)*100)+100
+;variable:
+;   name:x
+;   startValue:0
+;   endValue:127
+;   step:1
+;outputType(B,W,L): W
+;outputInHex: true
+;valuesPerLine: 8
+;--------------------------------
+;- DO NOT MODIFY following lines -
+            dc.w       $0064, $0069, $006e, $0073, $0078, $007c, $0081, $0086
+            dc.w       $008a, $008f, $0093, $0097, $009c, $00a0, $00a3, $00a7
+            dc.w       $00ab, $00ae, $00b1, $00b4, $00b7, $00ba, $00bc, $00be
+            dc.w       $00c0, $00c2, $00c4, $00c5, $00c6, $00c7, $00c8, $00c8
+            dc.w       $00c8, $00c8, $00c8, $00c7, $00c6, $00c5, $00c4, $00c2
+            dc.w       $00c0, $00be, $00bc, $00ba, $00b7, $00b4, $00b1, $00ae
+            dc.w       $00ab, $00a7, $00a3, $00a0, $009c, $0097, $0093, $008f
+            dc.w       $008a, $0086, $0081, $007c, $0078, $0073, $006e, $0069
+            dc.w       $0064, $005f, $005a, $0055, $0050, $004c, $0047, $0042
+            dc.w       $003e, $0039, $0035, $0031, $002c, $0028, $0025, $0021
+            dc.w       $001d, $001a, $0017, $0014, $0011, $000e, $000c, $000a
+            dc.w       $0008, $0006, $0004, $0003, $0002, $0001, $0000, $0000
+            dc.w       $0000, $0000, $0000, $0001, $0002, $0003, $0004, $0006
+            dc.w       $0008, $000a, $000c, $000e, $0011, $0014, $0017, $001a
+            dc.w       $001d, $0021, $0025, $0028, $002c, $0031, $0035, $0039
+            dc.w       $003e, $0042, $0047, $004c, $0050, $0055, $005a, $005f
+;@generated-datagen-end----------------
+NB_SIN1   = (*-sin1)/2
 
 ;--------------------------------------------------------------------------------
 ; copper
@@ -79,8 +178,8 @@ var_tab__:  dc.w       0
 
             even
 copper:      
-            dc.w       $1FC,0                                             ; compat. AGA
-            dc.w       BPLCON0, NB_BPLS<<12+$0200                         ; 2 bitplaces
+            dc.w       $1FC,0                                                    ; compat. AGA
+            dc.w       BPLCON0, NB_BPLS<<12+$0200                                ; 2 bitplaces
             dc.w       DIWSTRT, $2c81
             dc.w       DIWSTOP, $2cc1
             dc.w       DDFSTRT, $38
@@ -109,11 +208,16 @@ copper_bpls:
            ; default colors
             dc.w       $0180,$0000,$0182,$0f00,$0184,$00f0,$0186,$0ff0
 
-            dc.w       $ffdf, $fffe                                       ; Wait for vpos >= 0xff and hpos >= 0xde
+            dc.w       $ffdf, $fffe                                              ; Wait for vpos >= 0xff and hpos >= 0xde
             ; bottom of the screen
-            dc.w       $3201, $fffe, $180, $f00                           ; Wait for vpos >= 0x2c
+            dc.w       $3201, $fffe, $180, $f00                                  ; Wait for vpos >= 0x2c
             dc.w       $ffff, $fffe
 
-            even
+
+;--------------------------------------------------------------------------------
+; bitplanes
+; use bss when you want to initialize the bitplanes to zero at runtime rather than storing them in the data section 
+;--------------------------------------------------------------------------------
+            section    bss, bss_c
 bpls:
-            dcb.b      W/8*H*NB_BPLS,$00
+            ds.b       W/8*H*NB_BPLS

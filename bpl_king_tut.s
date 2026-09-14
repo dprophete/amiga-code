@@ -6,17 +6,11 @@
 ;---------- Const ----------
 ; largeur effective = (DDFSTOP-DDFSTART)*2+16 == 320/8
 NB_BPLS   = 5
-W         = 336                                                           ; -> will require modulo
+W         = 336
 H         = 256
-; if non IL W/8*H         ; if IL :   W/8 
-BPL_SIZE  = W/8
-
-; if non IL W/8           ; if IL : W/8*NB_BPLS
-LINE_SIZE = W/8*NB_BPLS                                                   
-
-; if non IL : largeur ligne memoire - largeur effective
-; if IL : W/8*NB_BPLS-largeur effective
-MODULO    = W/8*NB_BPLS-320/8                                                
+BPL_SIZE  = W/8                                                           ; if non IL W/8*H         ; if IL : W/8 
+LINE_SIZE = W/8*NB_BPLS                                                   ; if non IL W/8           ; if IL : W/8*NB_BPLS
+MODULO    = W/8*NB_BPLS-320/8                                             ; if non IL : W/8 - LE/8  ; if IL : W/8*NB_BPLS-LE/8
 
 
 ;--------------------------------------------------------------------------------

@@ -5,6 +5,6 @@
   INCLUDE    "./base.s"
 
   ; INCLUDE    "./copper1.s"
-  INCLUDE    "./bpl1.s"
+  ; INCLUDE    "./bpl1.s"
   ; INCLUDE    "./bpl_king_tut.s"
-  ; INCLUDE    "./bpl2.s"
+  INCLUDE    "./bpl2.s"

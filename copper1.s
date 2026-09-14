@@ -63,28 +63,28 @@ init_copper:
 
 draw_single_lines:
             ; line above
-            add.w      #2,(pos_line_above)
-            cmp.w      #NB_COLORS_SINGLE_LINE*2,(pos_line_above)
+            add.w      #2,pos_line_above
+            cmp.w      #NB_COLORS_SINGLE_LINE*2,pos_line_above
             bne        .no_above
-            move.w     #0,(pos_line_above)
+            move.w     #0,pos_line_above
 .no_above:
-            move.w     (pos_line_above),d0
+            move.w     pos_line_above,d0
             lea        line_above+6,a0
             bsr        draw_single_line
 
             ; line below
-            cmp.w      #0,(pos_line_below)
+            cmp.w      #0,pos_line_below
             bne        .no_below
             move.w     #NB_COLORS_SINGLE_LINE*2,(pos_line_below)
 .no_below:
-            sub.w      #2,(pos_line_below)
-            move.w     (pos_line_below),d0
+            sub.w      #2,pos_line_below
+            move.w     pos_line_below,d0
             lea        line_below+6,a0
             bsr        draw_single_line
 
 
             lea        line_below+6,a0
-            move.w     (pos_line_below),d0
+            move.w     pos_line_below,d0
             bsr        draw_single_line
             rts
 
