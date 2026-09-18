@@ -1,3 +1,5 @@
 sys:demo
-; Quits the emulator at the end of the program
-UAEquit
+; Quits the emulator at the end of the program.
+; Quit fires UAE's uaelib ExitEmu trap; uae/fs-uae-wrapper.sh reaps the host
+; process afterwards, because FS-UAE itself deadlocks instead of exiting.
+Quit
