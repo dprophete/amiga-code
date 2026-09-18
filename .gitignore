@@ -1,2 +1,11 @@
 build/
 uae/dh0/demo
+
+# .vscode is ignored globally (~/.gitignore_global); keep the parts this
+# project needs - the vasm/vlink build task and the FS-UAE launch configs.
+# The directory has to be re-included first, otherwise git never descends
+# into it and the negations below can't match.
+!.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
