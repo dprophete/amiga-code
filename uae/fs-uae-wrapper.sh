@@ -18,7 +18,7 @@ set -u
 
 MARKER="real_main returned"     # emulation core has shut down
 POLL=0.05                       # how often to look
-QUIET_TICKS=3                   # consecutive quiet polls before we reap
+QUIET_TICKS=2                   # consecutive quiet polls before we reap
 MAX_TICKS=100                   # ...but never wait longer than this
 
 REAL="${FSUAE_REAL_BIN:-}"
@@ -35,6 +35,7 @@ if [ -z "$REAL" ] || [ ! -x "$REAL" ]; then
 fi
 
 START=$(date +%s)
+REAPED=0
 "$REAL" "$@" &
 PID=$!
 
@@ -71,17 +72,21 @@ while kill -0 "$PID" 2>/dev/null; do
     done
 
     if kill -0 "$PID" 2>/dev/null; then
+        # SIGKILL rather than SIGTERM, deliberately.  By now the core has
+        # returned and the filesystem cache and file streams are flushed, so a
+        # graceful signal buys nothing - and SDL turns SIGTERM into an SDL_QUIT
+        # event for the very main loop that is deadlocked, so it is swallowed
+        # and we would just wait out the grace period before killing anyway.
         echo "fs-uae-wrapper: emulation core exited, host wedged - terminating" >&2
-        kill -TERM "$PID" 2>/dev/null
-        n=0
-        while [ "$n" -lt 40 ] && kill -0 "$PID" 2>/dev/null; do
-            sleep "$POLL"
-            n=$((n + 1))
-        done
-        kill -0 "$PID" 2>/dev/null && kill -KILL "$PID" 2>/dev/null
+        kill -KILL "$PID" 2>/dev/null
+        REAPED=1
     fi
     break
 done
+
+# A reap is a success, not a crash: exit cleanly, and skip the wait so the
+# shell does not print a "Killed: 9" job message for a kill we intended.
+[ "$REAPED" -eq 1 ] && exit 0
 
 wait "$PID"
 exit $?
