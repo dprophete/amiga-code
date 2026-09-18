@@ -10,7 +10,7 @@
       "remoteProgram": "SYS:demo",
       "emulatorType": "fs-uae",
       "emulatorBin": "${workspaceFolder}/uae/fs-uae-wrapper.sh",
-      "emulatorArgs": ["--hard_drive_0=${workspaceFolder}/uae/dh0", "--automatic_input_grab=0", "--warp_mode=0"],
+      "emulatorArgs": ["--hard_drive_0=${workspaceFolder}/uae/dh0", "--automatic_input_grab=0", "--warp_mode=0", "--hide_hud=1"],
       "preLaunchTask": "amigaassembly: build"
     },
     {
@@ -22,7 +22,7 @@
       "remoteProgram": "SYS:demo",
       "emulatorType": "fs-uae",
       "emulatorBin": "${workspaceFolder}/uae/fs-uae-wrapper.sh",
-      "emulatorArgs": ["--hard_drive_0=${workspaceFolder}/uae/dh0", "--automatic_input_grab=0", "--warp_mode=0"],
+      "emulatorArgs": ["--hard_drive_0=${workspaceFolder}/uae/dh0", "--automatic_input_grab=0", "--warp_mode=0", "--hide_hud=1"],
       "preLaunchTask": "amigaassembly: build"
     }
   ]
