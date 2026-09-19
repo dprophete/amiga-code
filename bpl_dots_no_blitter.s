@@ -30,7 +30,7 @@ main_loop:
             ; move.w     #$400,COLOR00(a6)
             ; bsr        plot_wave
             ; move.w     #$000,COLOR00(a6)
-            move.w     #$60,d1
+            move.w     #$50,d1
             bsr        wait_raster
             move.w     #$004,COLOR00(a6)
             bsr        clear_bpls
@@ -70,31 +70,14 @@ init_bpls:
 
 clear_bpls:
             lea        bpls,a0
-            move.w     #W/32*202/20*NB_BPLS-1,d0
-.clear_loop:
+            move.w     #202*NB_BPLS-1,d0
+.clear_line:
+            ; clean one line of bitplanes
+            rept       7
             clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            clr.l      (a0)+
-            
-            dbf        d0,.clear_loop
+            endr
+            add.l      #W/8-7*4,a0
+            dbf        d0,.clear_line
             rts
 
 plot_wave:
@@ -111,7 +94,7 @@ plot_wave:
             move.w     d4,pos_sin1_y
             move       #1,d2                                                     ; set color
 
-            move.w     #128-1,d7                                                 ; nb dots
+            move.w     #64-1,d7                                                  ; nb dots
 .loop1:
             move.w     (a1,d3),d0                                                ; set x coordinate
             move.w     (a1,d4),d1                                                ; set y coordinate
