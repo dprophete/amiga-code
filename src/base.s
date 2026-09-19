@@ -2,7 +2,7 @@
 ; includes
 ;--------------------------------------------------------------------------------
 
-            INCDIR     "include"
+            INCDIR     "../include"
             INCLUDE    "hw.i"
             INCLUDE    "funcdef.i"
             INCLUDE    "exec/exec_lib.i"

@@ -117,4 +117,4 @@ copper_bpls:
             dc.w       $ffff, $fffe
 
 bpls:
-            incbin     "./raw_files/KingTutbisIL.raw"
+            incbin     "../raw_files/KingTutbisIL.raw"
