@@ -4,12 +4,12 @@
 
 ;---------- Const ----------
 ; largeur effective (LE) = (DDFSTOP-DDFSTART)*2+16 == 320/8
-NB_BPLS   = 2
-W         = 320
-H         = 256
-BPL_SIZE  = W/8                                                                  ; if non IL W/8*H         ; if IL : W/8 
-LINE_SIZE = W/8*NB_BPLS                                                          ; if non IL W/8           ; if IL : W/8*NB_BPLS
-MODULO    = W/8*NB_BPLS-320/8                                                    ; if non IL : W/8 - LE/8  ; if IL : W/8*NB_BPLS-LE/8
+NB_BPLS           = 2
+W                 = 320
+H                 = 256
+BPL_SIZE          = W/8                                                          ; if non IL W/8*H         ; if IL : W/8 
+LINE_SIZE         = W/8*NB_BPLS                                                  ; if non IL W/8           ; if IL : W/8*NB_BPLS
+MODULO            = W/8*NB_BPLS-320/8                                            ; if non IL : W/8 - LE/8  ; if IL : W/8*NB_BPLS-LE/8
 
 
 ;--------------------------------------------------------------------------------
@@ -22,7 +22,6 @@ run:
             bsr        init_copper
             move.l     #copper,COP1LC(a6)                                        ; set new copper
             move.w     #$0,COPJMP1(a6)                                           ; activate copper
-
 
 main_loop:
             ; move.w     #$01,d1
@@ -68,10 +67,11 @@ init_bpls:
 ; misc
 ;--------------------------------------------------------------------------------
 
+NB_LINES_TO_CLEAR = 201
 clear_bpls:
-            lea        bpls+201*LINE_SIZE,a0
+            lea        bpls+NB_LINES_TO_CLEAR*LINE_SIZE,a0
             ; we are going to set the values 12 at a time (d1-d7/a1-a5)
-            move.w     #201*LINE_SIZE/(4*12)-1,d0
+            move.l     #NB_LINES_TO_CLEAR-1,d0
             move.l     #$0,a1
             move.l     #$0,a2
             move.l     #$0,a3
@@ -85,7 +85,9 @@ clear_bpls:
             move.l     #$0,d6
             move.l     #$0,d7
 .clear:
-            movem.l    d1-d7/a1-a5,-(a0)
+            rept       NB_BPLS
+            movem.l    d1-d7/a1-a3,-(a0)                                         ;10 long -> 40 bytes = 320px
+            endr
             dbf        d0,.clear
             rts
 
@@ -203,7 +205,7 @@ sin1:
             dc.w       $00c6, $00c7, $00c7, $00c7, $00c8, $00c8, $00c8, $00c8
 ;@generated-datagen-end----------------
 
-NB_SIN1   = (*-sin1)/2
+NB_SIN1           = (*-sin1)/2
 
 ;--------------------------------------------------------------------------------
 ; copper
