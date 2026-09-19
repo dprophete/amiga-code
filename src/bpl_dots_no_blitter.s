@@ -30,7 +30,7 @@ main_loop:
             ; move.w     #$400,COLOR00(a6)
             ; bsr        plot_wave
             ; move.w     #$000,COLOR00(a6)
-            move.w     #$50,d1
+            move.w     #$f8,d1
             bsr        wait_raster
             move.w     #$004,COLOR00(a6)
             bsr        clear_bpls
@@ -69,15 +69,24 @@ init_bpls:
 ;--------------------------------------------------------------------------------
 
 clear_bpls:
-            lea        bpls,a0
-            move.w     #202*NB_BPLS-1,d0
-.clear_line:
-            ; clean one line of bitplanes
-            rept       7
-            clr.l      (a0)+
-            endr
-            add.l      #W/8-7*4,a0
-            dbf        d0,.clear_line
+            lea        bpls+201*LINE_SIZE,a0
+            ; we are going to set the values 12 at a time (d1-d7/a1-a5)
+            move.w     #201*LINE_SIZE/(4*12)-1,d0
+            move.l     #$0,a1
+            move.l     #$0,a2
+            move.l     #$0,a3
+            move.l     #$0,a4
+            move.l     #$0,a5
+            move.l     #$0,d1
+            move.l     #$0,d2
+            move.l     #$0,d3
+            move.l     #$0,d4
+            move.l     #$0,d5
+            move.l     #$0,d6
+            move.l     #$0,d7
+.clear:
+            movem.l    d1-d7/a1-a5,-(a0)
+            dbf        d0,.clear
             rts
 
 plot_wave:
@@ -87,7 +96,7 @@ plot_wave:
             move.w     pos_sin1_x,d3                                             ; x idx
             move.w     pos_sin1_y,d4                                             ; x idx
             add.w      #2,d3                                                     ; vx
-            add.w      #10,d4                                                    ; vy
+            add.w      #4,d4                                                     ; vy
             and.w      #(NB_SIN1*2)-1,d3
             and.w      #(NB_SIN1*2)-1,d4
             move.w     d3,pos_sin1_x
@@ -142,7 +151,7 @@ var_tab__:  dc.w       0
 pos_sin1_x:   
             dc.w       0
 pos_sin1_y:   
-            dc.w       0
+            dc.w       NB_SIN1*2/4
 
 sin1:
 ;@generated-datagen-start----------------
