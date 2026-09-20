@@ -25,20 +25,6 @@ run:
             move.w     #$0,COPJMP1(a6)                                   ; activate copper
 
             bsr        blit_fonts_to_screen
-
-
-;             bsr        wait_blit
-;             lea        font,a0
-;             lea        bpls+LINE_SIZE*16,a1
-;             move.w     #$09f0,BLTCON0(a6)
-;             move.w     #0,BLTCON1(a6)
-;             move.w     #$ffff,BLTAFWM(a6)
-;             move.w     #$0000,BLTALWM(a6)
-;             move.w     #(W-BLTW)/8,BLTAMOD(a6)
-;             move.w     #(W-BLTW)/8,BLTDMOD(a6)
-;             move.l     a0,BLTAPTH(a6)
-;             move.l     a1,BLTDPTH(a6)
-;             move.w     #16*64+BLTW/16,BLTSIZE(a6)                         ;h=16, w=16/16 (1 word)
 main_loop:
             move.w     #$50,d1
             bsr        wait_raster
@@ -197,19 +183,7 @@ do_scroll2:
 .scroll_wrap:
             move.w     d0,scroll_x2
 
-            ; scroll everything  by 1bit
-            bsr        wait_blit
-            move.w     #$19f0,BLTCON0(a6)
-            move.w     #2,BLTCON1(a6)
-            move.w     #$ffff,BLTAFWM(a6)
-            move.w     #$7fff,BLTALWM(a6)
-            move.w     #(W-W)/8,BLTAMOD(a6)
-            move.w     #(W-W)/8,BLTDMOD(a6)
-            lea        bpls+SCROLL2_Y*LINE_SIZE+CHAR_H*LINE_SIZE-2,a0
-            lea        bpls+SCROLL2_Y*LINE_SIZE+CHAR_H*LINE_SIZE-2,a1
-            move.l     a0,BLTAPTH(a6)
-            move.l     a1,BLTDPTH(a6)
-            move.w     #CHAR_H*64+W/16,BLTSIZE(a6)                       ;h=16, w=16/16 (1 word)
+            bsr        scroll_by_1px
 
             lea        scroll_txt,a3
             move.w     scroll_x2,d0
@@ -241,6 +215,22 @@ do_scroll2:
             move.w     #CHAR_H*64+CHAR_W/16,BLTSIZE(a6)                  ;h=16, w=16/16 (1 word)
 
 .not_inserting_char:
+            rts
+
+scroll_by_1px:
+            ; scroll everything  by 1bit
+            bsr        wait_blit
+            move.w     #$19f0,BLTCON0(a6)
+            move.w     #2,BLTCON1(a6)
+            move.w     #$ffff,BLTAFWM(a6)
+            move.w     #$7fff,BLTALWM(a6)
+            move.w     #(W-W)/8,BLTAMOD(a6)
+            move.w     #(W-W)/8,BLTDMOD(a6)
+            lea        bpls+SCROLL2_Y*LINE_SIZE+CHAR_H*LINE_SIZE-2,a0
+            lea        bpls+SCROLL2_Y*LINE_SIZE+CHAR_H*LINE_SIZE-2,a1
+            move.l     a0,BLTAPTH(a6)
+            move.l     a1,BLTDPTH(a6)
+            move.w     #CHAR_H*64+W/16,BLTSIZE(a6)                       ;h=16, w=16/16 (1 word)
             rts
 
 ;--------------------------------------------------------------------------------
