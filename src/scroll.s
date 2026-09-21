@@ -29,7 +29,7 @@ run:
             bsr        blit_fonts_to_screen
             bsr        test_blit_chars
 main_loop:
-            move.w     #$50,d1
+            move.w     #$10,d1
             bsr        wait_raster
             bsr        do_scroll1
             bsr        do_scroll2
@@ -151,7 +151,7 @@ clear_scroll1:
             move.w     #$0000,BLTALWM(a6)
             move.w     #0,BLTDMOD(a6)
             move.l     a1,BLTDPTH(a6)
-            move.w     #W*64*NB_BPLS+CHAR_H/16,BLTSIZE(a6)                 ;h=16, w=16/16 (1 word)
+            move.w     #CHAR_H*NB_BPLS*64+W/16,BLTSIZE(a6)                 ;h=16, w=16/16 (1 word)
             rts
 
 ;--------------------------------------------------------------------------------
