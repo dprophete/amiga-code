@@ -1,5 +1,7 @@
 ;================================================================================
-; function to plot dots on a bitplane
+; function to do basic scrolling:
+; scroll1: scroll by having the blitter shifts charts by 1px
+; scroll2: scroll by plotting every character individually (not working properly though)
 ;================================================================================
 
 ;---------- Const ----------
@@ -86,7 +88,7 @@ init_bpls:
 
 SCROLL1_Y         = 100
 do_scroll1:
-            ; change do_scroll1 position
+            ; change scroll_x1 position
             clr.l      d0
             move.w     scroll_x1,d0
             addq       #1,d0
@@ -142,7 +144,7 @@ CHAR_W_FOR_BLT    = CHAR_W+16                                              ; kee
 
 SCROLL2_Y         = 70
 do_scroll2:
-            ; change do_scroll1 position
+            ; change scroll2 position
             clr.l      d0
             move.w     scroll_x2,d0
             addq       #1,d0
