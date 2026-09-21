@@ -5,7 +5,7 @@
 ;---------- Const ----------
 ; largeur effective (LE) = (DDFSTOP-DDFSTART)*2+16 == 320/8
 NB_BPLS           = 2 
-W                 = 320
+W                 = 336
 H                 = 256
 BPL_SIZE          = W/8                                                    ; if non IL W/8*H         ; if IL : W/8 
 LINE_SIZE         = W/8*NB_BPLS                                            ; if non IL W/8           ; if IL : W/8*NB_BPLS
@@ -50,7 +50,7 @@ init_font_offset:
 .init_font_offset:
             moveq      #0,d2
             move.b     (a0)+,d2                                            ; char
-            lsl        #1,d2
+            add.w      d2,d2
             move.w     d0,(a1,d2.w)
             add.w      #CHAR_W/8,d0
             add.w      #1,d1
@@ -84,7 +84,7 @@ init_bpls:
 ;   redraw all chars on the line
 ;--------------------------------------------------------------------------------
 
-SCROLL1_Y         = 150
+SCROLL1_Y         = 100
 do_scroll1:
             ; change do_scroll1 position
             clr.l      d0
@@ -109,19 +109,19 @@ CHAR_W_FOR_BLT    = CHAR_W+16                                              ; kee
             move.w     #0,BLTCON1(a6)
             move.w     #$ffff,BLTAFWM(a6)
             move.w     #$0000,BLTALWM(a6)
-            move.w     #(W-CHAR_W_FOR_BLT)/8,BLTAMOD(a6)
+            move.w     #(FONT_W-CHAR_W_FOR_BLT)/8,BLTAMOD(a6)
             move.w     #(W-CHAR_W_FOR_BLT)/8,BLTDMOD(a6)
 
             lea        bpls+SCROLL1_Y*LINE_SIZE,a1
             lea        font_offset,a2
 
-            moveq      #18,d7                                              ; how many 16-pixel blocks fit in the width
+            moveq      #20-1,d7                                            ; how many 16-pixel blocks fit in the width
 .blit_char:
             moveq      #0,d1
             move.b     (a3)+,d1                                            ; char
             cmp.b      #" ",d1
             beq        .skip_char
-            lsl        #1,d1
+            add.w      d1,d1
             move.w     (a2,d1.w),d2                                        ;d2 == offset from #font 
             lea        font,a0
             add.w      d2,a0
@@ -140,7 +140,7 @@ CHAR_W_FOR_BLT    = CHAR_W+16                                              ; kee
 ; scroll 2 (move scroll text by 1px and only insert new one when needed)
 ;--------------------------------------------------------------------------------
 
-SCROLL2_Y         = 100
+SCROLL2_Y         = 70
 do_scroll2:
             ; change do_scroll1 position
             clr.l      d0
@@ -163,7 +163,7 @@ do_scroll2:
             ; inserting new char
             lsr.w      #4,d0
             move.b     (a3,d0.w),d1                                        ; char
-            lsl.w      #1,d1
+            add.w      d1,d1
             lea        font_offset,a2
             moveq      #0,d2
             move.w     (a2,d1.w),d2                                        ;d2 == offset from #font 
@@ -176,7 +176,7 @@ do_scroll2:
             move.w     #0,BLTCON1(a6)
             move.w     #$ffff,BLTAFWM(a6)
             move.w     #$ffff,BLTALWM(a6)
-            move.w     #(W-CHAR_W)/8,BLTAMOD(a6)
+            move.w     #(FONT_W-CHAR_W)/8,BLTAMOD(a6)
             move.w     #(W-CHAR_W)/8,BLTDMOD(a6)
             lea        bpls+SCROLL2_Y*LINE_SIZE+W/8-2,a1
             move.l     a0,BLTAPTH(a6)
@@ -219,6 +219,7 @@ clear_scroll:
             move.l     a1,BLTDPTH(a6)
             move.w     #CLR_H*64*NB_BPLS+CLR_W/16,BLTSIZE(a6)              ;h=16, w=16/16 (1 word)
             rts
+
 blit_fonts_to_screen:
             bsr        wait_blit
             lea        font,a0
@@ -227,7 +228,7 @@ blit_fonts_to_screen:
             move.w     #0,BLTCON1(a6)
             move.w     #$ffff,BLTAFWM(a6)
             move.w     #$ffff,BLTALWM(a6)
-            move.w     #(W-FONT_W)/8,BLTAMOD(a6)
+            move.w     #(FONT_W-FONT_W)/8,BLTAMOD(a6)
             move.w     #(W-FONT_W)/8,BLTDMOD(a6)
             move.l     a0,BLTAPTH(a6)
             move.l     a1,BLTDPTH(a6)
@@ -297,7 +298,7 @@ scroll_ptr:
 scroll_x1:
             dc.w       0
 scroll_x2:
-            dc.w       18*CHAR_W
+            dc.w       19*CHAR_W
 
 ;--------------------------------------------------------------------------------
 ; copper
