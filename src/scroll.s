@@ -27,10 +27,10 @@ run:
             move.w     #$0,COPJMP1(a6)                                     ; activate copper
 
             bsr        blit_fonts_to_screen
+            bsr        test_blit_chars
 main_loop:
             move.w     #$50,d1
             bsr        wait_raster
-            bsr        clear_scroll
             bsr        do_scroll1
             bsr        do_scroll2
 
@@ -86,8 +86,10 @@ init_bpls:
 ;   redraw all chars on the line
 ;--------------------------------------------------------------------------------
 
-SCROLL1_Y         = 100
+SCROLL1_Y         = 70
 do_scroll1:
+            bsr        clear_scroll1
+
             ; change scroll_x1 position
             clr.l      d0
             move.w     scroll_x1,d0
@@ -106,18 +108,19 @@ CHAR_W_FOR_BLT    = CHAR_W+16                                              ; kee
             add.w      d0,a3
             swap       d0
             eor.w      #$f000,d0
-            or.w       #$09f0,d0
+            or.w       #$0dfc,d0                                           ; D = A + B
             move.w     d0,BLTCON0(a6)
             move.w     #0,BLTCON1(a6)
             move.w     #$ffff,BLTAFWM(a6)
             move.w     #$0000,BLTALWM(a6)
             move.w     #(FONT_W-CHAR_W_FOR_BLT)/8,BLTAMOD(a6)
+            move.w     #(W-CHAR_W_FOR_BLT)/8,BLTBMOD(a6)
             move.w     #(W-CHAR_W_FOR_BLT)/8,BLTDMOD(a6)
 
-            lea        bpls+SCROLL1_Y*LINE_SIZE,a1
+            lea        bpls+SCROLL1_Y*LINE_SIZE-2,a1
             lea        font_offset,a2
 
-            moveq      #20-1,d7                                            ; how many 16-pixel blocks fit in the width
+            moveq      #W/CHAR_W-1,d7                                      ; how many 16-pixel blocks fit in the width
 .blit_char:
             moveq      #0,d1
             move.b     (a3)+,d1                                            ; char
@@ -130,6 +133,7 @@ CHAR_W_FOR_BLT    = CHAR_W+16                                              ; kee
 
             bsr        wait_blit
             move.l     a0,BLTAPTH(a6)
+            move.l     a1,BLTBPTH(a6)
             move.l     a1,BLTDPTH(a6)
             move.w     #CHAR_H*NB_BPLS*64+CHAR_W_FOR_BLT/16,BLTSIZE(a6)    ;h=16, w=16/16 (1 word)
 
@@ -138,11 +142,23 @@ CHAR_W_FOR_BLT    = CHAR_W+16                                              ; kee
             dbf        d7,.blit_char
             rts
 
+clear_scroll1:
+            bsr        wait_blit
+            lea        bpls+SCROLL1_Y*LINE_SIZE,a1
+            move.w     #$0100,BLTCON0(a6)
+            move.w     #0,BLTCON1(a6)
+            move.w     #$ffff,BLTAFWM(a6)
+            move.w     #$0000,BLTALWM(a6)
+            move.w     #0,BLTDMOD(a6)
+            move.l     a1,BLTDPTH(a6)
+            move.w     #W*64*NB_BPLS+CHAR_H/16,BLTSIZE(a6)                 ;h=16, w=16/16 (1 word)
+            rts
+
 ;--------------------------------------------------------------------------------
 ; scroll 2 (move scroll text by 1px and only insert new one when needed)
 ;--------------------------------------------------------------------------------
 
-SCROLL2_Y         = 70
+SCROLL2_Y         = 100
 do_scroll2:
             ; change scroll2 position
             clr.l      d0
@@ -205,22 +221,39 @@ scroll_by_1px:
             rts
 
 ;--------------------------------------------------------------------------------
-; misc
+; test blits
 ;--------------------------------------------------------------------------------
 
-CLR_W             = 320
-CLR_H             = 16
-clear_scroll:
+SCROLL3_Y         = 150
+test_blit_chars: 
+
+            ; char1
             bsr        wait_blit
-            lea        bpls+SCROLL1_Y*LINE_SIZE,a1
-            move.w     #$0100,BLTCON0(a6)
+            move.w     #$4dfc,BLTCON0(a6)
             move.w     #0,BLTCON1(a6)
             move.w     #$ffff,BLTAFWM(a6)
             move.w     #$0000,BLTALWM(a6)
-            move.w     #0,BLTDMOD(a6)
-            move.l     a1,BLTDPTH(a6)
-            move.w     #CLR_H*64*NB_BPLS+CLR_W/16,BLTSIZE(a6)              ;h=16, w=16/16 (1 word)
+            move.w     #(FONT_W-CHAR_W_FOR_BLT)/8,BLTAMOD(a6)
+            move.w     #(W-CHAR_W_FOR_BLT)/8,BLTBMOD(a6)
+            move.w     #(W-CHAR_W_FOR_BLT)/8,BLTDMOD(a6)
+
+            move.l     #font,BLTAPTH(a6)
+            move.l     #bpls+SCROLL3_Y*LINE_SIZE+10,BLTBPTH(a6)
+            move.l     #bpls+SCROLL3_Y*LINE_SIZE+10,BLTDPTH(a6)
+            move.w     #CHAR_H*NB_BPLS*64+CHAR_W_FOR_BLT/16,BLTSIZE(a6)    ;h=16, w=16/16 (1 word)
+
+            ;char2
+            bsr        wait_blit
+            move.l     #font+2,BLTAPTH(a6)
+            move.l     #bpls+SCROLL3_Y*LINE_SIZE+12,BLTBPTH(a6)
+            move.l     #bpls+SCROLL3_Y*LINE_SIZE+12,BLTDPTH(a6)
+            move.w     #CHAR_H*NB_BPLS*64+CHAR_W_FOR_BLT/16,BLTSIZE(a6)    ;h=16, w=16/16 (1 word)
+
             rts
+
+;--------------------------------------------------------------------------------
+; misc
+;--------------------------------------------------------------------------------
 
 blit_fonts_to_screen:
             bsr        wait_blit
@@ -285,7 +318,7 @@ font_offset:
             dcb.w      256,0
 
 scroll_txt:     
-            dcb.b      20," "
+            dcb.b      21," "
             dc.b       "hello everybody this"
             dc.b       " is my first scroll "
             dc.b       "in a very long "
@@ -300,7 +333,7 @@ scroll_ptr:
 scroll_x1:
             dc.w       0
 scroll_x2:
-            dc.w       19*CHAR_W
+            dc.w       20*CHAR_W+1
 
 ;--------------------------------------------------------------------------------
 ; copper
@@ -363,9 +396,6 @@ font:
             ; 567890()<heart><heart with letter c>
             incbin     "../raw_files/melonfontbis.raw"
 
-;             section    bss, bss_c
-; bpls:
-;             ds.b       W/8*H*NB_BPLS,0
-            section    data, data_c
+            section    bss, bss_c
 bpls:
-            dcb.b      W/8*H*NB_BPLS,$0
+            ds.b       W/8*H*NB_BPLS,0
