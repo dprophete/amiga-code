@@ -96,6 +96,9 @@ init_sin1:
 ;--------------------------------------------------------------------------------
 
 SCROLL1_Y           = 70
+CHAR_W_FOR_BLT      = CHAR_W+16                                                  ; keep some space at the end
+SIN_OFFSET_PER_FONT = 8
+
 do_scroll1:
             bsr        clear_scroll1
 
@@ -112,11 +115,6 @@ do_scroll1:
             ; change syn_pos
             move.w     sin_pos,d3
             addq       #2,d3
-            and.w      #NB_SIN1*2-1,d3
-            move.w     d3,sin_pos
-
-CHAR_W_FOR_BLT      = CHAR_W+16                                                  ; keep some space at the end
-SIN_OFFSET_PER_FONT = 8
 
             ; plot char
             bsr        wait_blit
@@ -125,12 +123,13 @@ SIN_OFFSET_PER_FONT = 8
             add.w      d0,a3
             swap       d0
 
+            ; if new char, update sin_pos
             cmp.w      #0,d0
             bne        .not_new_char
             add.w      #SIN_OFFSET_PER_FONT,d3
+.not_new_char:
             and.w      #NB_SIN1*2-1,d3
             move.w     d3,sin_pos
-.not_new_char:
 
             eor.w      #$f000,d0
             or.w       #$0dfc,d0                                                 ; D = A + B
@@ -182,38 +181,7 @@ clear_scroll1:
             move.w     #$0000,BLTALWM(a6)
             move.w     #0,BLTDMOD(a6)
             move.l     a1,BLTDPTH(a6)
-            move.w     #(CHAR_H+SIN1_HEIGH)*NB_BPLS*64+W/16,BLTSIZE(a6)          ;h=16, w=16/16 (1 word)
-            rts
-
-;--------------------------------------------------------------------------------
-; test blits
-;--------------------------------------------------------------------------------
-
-SCROLL3_Y           = 150
-test_blit_chars: 
-
-            ; char1
-            bsr        wait_blit
-            move.w     #$4dfc,BLTCON0(a6)
-            move.w     #0,BLTCON1(a6)
-            move.w     #$ffff,BLTAFWM(a6)
-            move.w     #$0000,BLTALWM(a6)
-            move.w     #(FONT_W-CHAR_W_FOR_BLT)/8,BLTAMOD(a6)
-            move.w     #(W-CHAR_W_FOR_BLT)/8,BLTBMOD(a6)
-            move.w     #(W-CHAR_W_FOR_BLT)/8,BLTDMOD(a6)
-
-            move.l     #font,BLTAPTH(a6)
-            move.l     #bpls+SCROLL3_Y*LINE_SIZE+10,BLTBPTH(a6)
-            move.l     #bpls+SCROLL3_Y*LINE_SIZE+10,BLTDPTH(a6)
-            move.w     #CHAR_H*NB_BPLS*64+CHAR_W_FOR_BLT/16,BLTSIZE(a6)          ;h=16, w=16/16 (1 word)
-
-            ;char2
-            bsr        wait_blit
-            move.l     #font+2,BLTAPTH(a6)
-            move.l     #bpls+SCROLL3_Y*LINE_SIZE+12,BLTBPTH(a6)
-            move.l     #bpls+SCROLL3_Y*LINE_SIZE+12,BLTDPTH(a6)
-            move.w     #CHAR_H*NB_BPLS*64+CHAR_W_FOR_BLT/16,BLTSIZE(a6)          ;h=16, w=16/16 (1 word)
-
+            move.w     #(CHAR_H+SIN1_HEIGHT)*NB_BPLS*64+W/16,BLTSIZE(a6)         ;h=16, w=16/16 (1 word)
             rts
 
 ;--------------------------------------------------------------------------------
@@ -312,7 +280,7 @@ sin1:
 ;@generated-datagen-end----------------
 
 NB_SIN1             = (*-sin1)/2
-SIN1_HEIGH          = 30*2
+SIN1_HEIGHT         = 30
 
 ;--------------------------------------------------------------------------------
 ; copper
@@ -351,6 +319,23 @@ copper_bpls:
            ; default colors
             dc.w       $0180,$0000,$0182,$0f00
             dc.w       $0184,$00f0,$0186,$0ff0
+
+TOP_SCROLL          = $2c+SCROLL1_Y
+SCROLL_HEIGHT       = SIN1_HEIGHT+CHAR_H
+            dc.b       TOP_SCROLL,$07,$ff,$fe
+            dc.w       $0180,$0002
+            ; mirror
+            dc.b       TOP_SCROLL+SCROLL_HEIGHT,$07,$ff,$fe
+            dc.w       $0180,$0004
+            dc.w       BPL1MOD,-W/8*NB_BPLS-320/8
+            dc.w       BPL2MOD,-W/8*NB_BPLS-320/8
+
+            dc.b       TOP_SCROLL+SCROLL_HEIGHT*2,$07,$ff,$fe
+            dc.w       $0180,$0000
+            ; one more line refrelcted -> should be empty
+            dc.b       TOP_SCROLL+SCROLL_HEIGHT*2+1,$07,$ff,$fe
+            dc.w       BPL1MOD,-320/8
+            dc.w       BPL2MOD,-320/8
 
             dc.w       $ffdf,$fffe                                               ; Wait for vpos >= 0xff and hpos >= 0xde
             ; bottom of the screen
