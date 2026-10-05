@@ -273,8 +273,8 @@ copper_bpls:
             dc.w       $2607,$fffe,$180,$000
 
            ; default colors
-            dc.w       $0180,$0000,$0182,$0f00
-            dc.w       $0184,$00f0,$0186,$0ff0
+            dc.w       $0180,$0000,$0182,$0f80
+            dc.w       $0184,$08f0,$0186,$008f
 
             dc.w       $ffdf,$fffe                                 ; Wait for vpos >= 0xff and hpos >= 0xde
             ; bottom of the screen
