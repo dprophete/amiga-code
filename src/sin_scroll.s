@@ -1,7 +1,5 @@
 ;================================================================================
-; function to do basic scrolling:
-; scroll1: scroll by having the blitter shifts charts by 1px
-; scroll2: scroll by plotting every character individually (not working properly though)
+; sin scroll by with each font moving independently
 ;================================================================================
 
 ;---------- Const ----------
