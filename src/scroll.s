@@ -124,7 +124,7 @@ CHAR_W_FOR_BLT    = CHAR_W+16                                              ; kee
 .blit_char:
             moveq      #0,d1
             move.b     (a3)+,d1                                            ; char
-            cmp.b      #" ",d1
+            cmp.b      #" ",d1                                             ; optimization - skip space characters
             beq        .skip_char
             add.w      d1,d1
             move.w     (a2,d1.w),d2                                        ;d2 == offset from #font 

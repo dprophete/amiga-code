@@ -1,17 +1,18 @@
 ;================================================================================
 ; function to do basic scrolling:
-; scroll1: scroll by having the blitter shifts charts by 1px
-; scroll2: scroll by plotting every character individually (not working properly though)
+; we use an extended screen to duplicate the chars
+; we leverage BPLCON1 to control the bitplane scrolling pixel by pixel
+; we change the bitplane addresses
 ;================================================================================
 
 ;---------- Const ----------
-; largeur effective (LE) = (DDFSTOP-DDFSTART)*2+16 == 320/8
+; largeur effective (LE) = (DDFSTOP-DDFSTART)*2+16 == 336/8
 NB_BPLS           = 2 
-W                 = (320+CHAR_W)*2
+W                 = (336+CHAR_W)*2
 H                 = 256
 BPL_SIZE          = W/8                                            ; if non IL W/8*H         ; if IL : W/8 
 LINE_SIZE         = W/8*NB_BPLS                                    ; if non IL W/8           ; if IL : W/8*NB_BPLS
-MODULO            = W/8*NB_BPLS-320/8                              ; if non IL : W/8 - LE/8  ; if IL : W/8*NB_BPLS-LE/8
+MODULO            = W/8*NB_BPLS-336/8                              ; if non IL : W/8 - LE/8  ; if IL : W/8*NB_BPLS-LE/8
 
 
 ;--------------------------------------------------------------------------------
@@ -140,14 +141,14 @@ do_scroll2:
 
             ; blit char
             bsr        wait_blit
-            lea        bpls+SCROLL2_Y*LINE_SIZE+42,a1
+            lea        bpls+SCROLL2_Y*LINE_SIZE+44,a1
             add.w      bpl_offset,a1
             move.l     a0,BLTAPTH(a6)
             move.l     a1,BLTDPTH(a6)
             move.w     #CHAR_H*NB_BPLS*64+CHAR_W/16,BLTSIZE(a6)    ;h=16, w=16/16 (1 word)
 
             add.w      #2,bpl_offset
-            cmp.w      #42,bpl_offset
+            cmp.w      #44,bpl_offset
             bne        .skip_reset_bpl_offset
             move.w     #0,bpl_offset
 .skip_reset_bpl_offset:
@@ -248,7 +249,7 @@ copper:
             dc.w       BPLCON0,NB_BPLS<<12+$0200                   ; 2 bitplaces
             dc.w       DIWSTRT,$2c81
             dc.w       DIWSTOP,$2cc1
-            dc.w       DDFSTRT,$38
+            dc.w       DDFSTRT,$30
             dc.w       DDFSTOP,$d0
             dc.w       BPL1MOD,MODULO
             dc.w       BPL2MOD,MODULO
