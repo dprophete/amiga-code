@@ -5,11 +5,11 @@
 ;---------- Const ----------
 ; largeur effective (LE) = (DDFSTOP-DDFSTART)*2+16 == 320/8
 NB_BPLS             = 1 
-W                   = 336
+W                   = 336+CHAR_W
 H                   = 256
 BPL_SIZE            = W/8                                                        ; if non IL W/8*H         ; if IL : W/8 
 LINE_SIZE           = W/8*NB_BPLS                                                ; if non IL W/8           ; if IL : W/8*NB_BPLS
-MODULO              = W/8*NB_BPLS-320/8                                          ; if non IL : W/8 - LE/8  ; if IL : W/8*NB_BPLS-LE/8
+MODULO              = W/8*NB_BPLS-336/8                                          ; if non IL : W/8 - LE/8  ; if IL : W/8*NB_BPLS-LE/8
 
 
 ;--------------------------------------------------------------------------------
@@ -18,6 +18,7 @@ MODULO              = W/8*NB_BPLS-320/8                                         
 run:       
             lea        CUSTOM,a6
             move.w     #$83c0,DMACON(a6)                                         ; enable copper + bitplane + blitter
+            move.l     bpls_shown,d0
             bsr        init_bpls
             bsr        init_copper
             bsr        init_font_offset
@@ -27,10 +28,14 @@ run:
 
             ; bsr        test_blit_chars
 main_loop:
-            ; bsr        wait_VBL
+            bsr        wait_VBL
+            ; move.w     #$40,d1
+            ; bsr        wait_raster
+            bsr        do_double_buffering
+            move.l     bpls_shown,d0
+            bsr        init_bpls
             bsr        do_scroll1
-            move.w     #$f0,d1
-            bsr        wait_raster
+            ; move.w     #$ff0,COLOR00(a6)
 
     		; mouse test
             btst       #6,$bfe001
@@ -66,7 +71,6 @@ init_copper:
             rts
 
 init_bpls:
-            move.l     #bpls,d0
             lea        copper_bpls,a0
             moveq      #NB_BPLS-1,d2
 .init_copper_bpl:
@@ -95,14 +99,21 @@ init_sin1:
 ;--------------------------------------------------------------------------------
 
 SCROLL1_Y           = 30
-CHAR_W_FOR_BLT      = CHAR_W+16                                                  ; keep some space at the end
+CHAR_W_FOR_BLT      = CHAR_W
 SIN_OFFSET_PER_FONT = 4
 
 do_scroll1:
-            bsr        clear_scroll1
+            ; 16px scroll
+            ; note: we need to do this before we change scroll_x1
+            move.w     scroll_x1,d1
+            and.b      #$0f,d1
+            eor.b      #$0f,d1
+            move.b     d1,d2
+            lsl.b      #4,d2
+            or         d2,d1
+            move.b     d1,BPLCON1+1(a6)
 
             ; change scroll_x1 position
-            clr.l      d0
             move.w     scroll_x1,d0
             addq       #1,d0
             cmp.w      #SCROLL_SIZE_IN_PX,d0
@@ -113,49 +124,49 @@ do_scroll1:
 
             ; change syn_pos
             move.w     sin_pos,d3
+            cmp.b      #$00,d1
+            bne        .no_scroll_overflow
+            add.w      #SIN_OFFSET_PER_FONT*CHAR_W,d3                            ;SIN_OFFSET_PER_FONT*16*2,d3
+.no_scroll_overflow:
             add.w      #8,d3
-
-            ; plot char
-            bsr        wait_blit
-            lea        scroll_txt,a3
-            ror.l      #4,d0
-            add.w      d0,a3
-            swap       d0
-
-            ; if new char, update sin_pos
-            cmp.w      #0,d0
-            bne        .not_new_char
-            add.w      #SIN_OFFSET_PER_FONT*16,d3
-.not_new_char:
             and.w      #NB_SIN1*2-1,d3
             move.w     d3,sin_pos
 
-            eor.w      #$f000,d0
-            or.w       #$0dfc,d0                                                 ; D = A + B
-            move.w     d0,BLTCON0(a6)
+            bsr        clear_scroll1
+            bsr        wait_blit
+
+            ; invarants
+            move.w     #$0dfc,BLTCON0(a6)
             move.w     #0,BLTCON1(a6)
-            move.w     #$ffff,BLTAFWM(a6)
-            move.w     #$0000,BLTALWM(a6)
+            move.w     #$ffff,BLTALWM(a6)
             move.w     #(FONT_W-CHAR_W_FOR_BLT)/8,BLTAMOD(a6)
             move.w     #(W-CHAR_W_FOR_BLT)/8,BLTBMOD(a6)
             move.w     #(W-CHAR_W_FOR_BLT)/8,BLTDMOD(a6)
 
+            lea        scroll_txt,a3
+            lsr.w      #4,d0
+            add.w      d0,a3
+
             lea        sin1,a4
             lea        font_offset,a2
-            lea        bpls+SCROLL1_Y*LINE_SIZE-2,a1
+            move.l     bpls_drawn,a1
+            add.l      #SCROLL1_Y*LINE_SIZE-2,a1
             moveq      #W/CHAR_W-1,d7                                            ; how many 16-pixel blocks fit in the width
 .blit_char:
             moveq      #0,d1
             move.b     (a3)+,d1                                                  ; char
-            ; cmp.b      #" ",d1                                                   ; optimization - skip space characters
-            ; beq        .skip_char
+            cmp.b      #" ",d1                                                   ; optimization - skip space characters
+            bne        .process_char
+            add.w      #SIN_OFFSET_PER_FONT*CHAR_W,d3
+            bra        .skip_char
+.process_char:
             add.w      d1,d1
             move.w     (a2,d1.w),d2                                              ;d2 == offset from #font 
             lea        font,a0
             add.w      d2,a0
 
             move.w     #$8000,d5
-            moveq      #16-1,d6
+            moveq      #CHAR_W-1,d6
 .blit_column:
             add.w      #SIN_OFFSET_PER_FONT,d3
             and.w      #NB_SIN1*2-1,d3
@@ -164,21 +175,22 @@ do_scroll1:
             add.w      d4,a5
             bsr        wait_blit
             move.w     d5,BLTAFWM(a6)
+            move.w     d5,BLTALWM(a6)
             move.l     a0,BLTAPTH(a6)
             move.l     a5,BLTBPTH(a6)
             move.l     a5,BLTDPTH(a6)
             move.w     #CHAR_H*NB_BPLS*64+CHAR_W_FOR_BLT/16,BLTSIZE(a6)          ;h=16, w=16/16 (1 word)
-            ror.w      #1,d5
+            lsr.w      #1,d5
             dbf        d6,.blit_column
 
 .skip_char:
             add        #2,a1
             dbf        d7,.blit_char
             rts
-
 clear_scroll1:
             bsr        wait_blit
-            lea        bpls+SCROLL1_Y*LINE_SIZE,a1
+            move.l     bpls_drawn,a1
+            add.l      #SCROLL1_Y*LINE_SIZE,a1
             move.w     #$0100,BLTCON0(a6)
             move.w     #0,BLTCON1(a6)
             move.w     #$ffff,BLTAFWM(a6)
@@ -200,7 +212,7 @@ wait_blit:
             bne.b      .wait
             rts
 
-;a0: bpls, d0:x, d1:y, d2: color
+;a0: bpls1, d0:x, d1:y, d2: color
 plot_dot:
             movem.l    d0-d4/a0,-(a7)
             mulu.w     #LINE_SIZE,d1
@@ -220,6 +232,13 @@ plot_dot:
             add.l      #BPL_SIZE,a0
             dbf        d4,.plot_in_bpl
             movem.l    (a7)+,d0-d4/a0
+            rts
+
+do_double_buffering:
+            move.l     bpls_shown,d0
+            move.l     bpls_drawn,d1
+            move.l     d1,bpls_shown
+            move.l     d0,bpls_drawn
             rts
 
 ;--------------------------------------------------------------------------------
@@ -256,6 +275,10 @@ scroll_x1:
             dc.w       0
 sin_pos:
             dc.w       0
+bpls_shown:
+            dc.l       bpls1
+bpls_drawn:
+            dc.l       bpls2
 
 sin1:
 ;@generated-datagen-start----------------
@@ -353,7 +376,7 @@ copper:
             dc.w       BPLCON0,NB_BPLS<<12+$0200                                 ; 2 bitplaces
             dc.w       DIWSTRT,$2c81
             dc.w       DIWSTOP,$2cc1
-            dc.w       DDFSTRT,$38
+            dc.w       DDFSTRT,$30
             dc.w       DDFSTOP,$d0
             dc.w       BPL1MOD,MODULO
             dc.w       BPL2MOD,MODULO
@@ -387,15 +410,15 @@ SCROLL_HEIGHT       = SIN1_HEIGHT+CHAR_H
             ; mirror
             dc.b       TOP_SCROLL+SCROLL_HEIGHT,$07,$ff,$fe
             dc.w       $0180,$0004,$0182,$0a08
-            dc.w       BPL1MOD,-W/8*NB_BPLS-320/8
-            dc.w       BPL2MOD,-W/8*NB_BPLS-320/8
+            dc.w       BPL1MOD,-W/8*NB_BPLS-336/8
+            dc.w       BPL2MOD,-W/8*NB_BPLS-336/8
 
             dc.b       TOP_SCROLL+SCROLL_HEIGHT*2,$07,$ff,$fe
             dc.w       $0180,$0000
-            ; one more line refrelcted -> should be empty
+            ; one        more line refrelcted -> should be empty
             dc.b       TOP_SCROLL+SCROLL_HEIGHT*2+1,$07,$ff,$fe
-            dc.w       BPL1MOD,-320/8
-            dc.w       BPL2MOD,-320/8
+            dc.w       BPL1MOD,-W/8
+            dc.w       BPL2MOD,-W/8
 
             dc.w       $ffdf,$fffe                                               ; Wait for vpos >= 0xff and hpos >= 0xde
             ; bottom of the screen
@@ -421,5 +444,7 @@ font:
             incbin     "../raw_files/melonfont.raw"
 
             section    bss, bss_c
-bpls:
+bpls1:
+            ds.b       W/8*H*NB_BPLS,0
+bpls2:
             ds.b       W/8*H*NB_BPLS,0
