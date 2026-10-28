@@ -11,4 +11,5 @@
   ; INCLUDE    "./scroll1.s"
   ; INCLUDE    "./scroll_extended_scr.s"
   ; INCLUDE    "./sin_scroll_per_char.s"
-  INCLUDE    "./sin_scroll_1px.s"
+  ; INCLUDE    "./sin_scroll_1px.s"
+  INCLUDE    "./sin_multiscroll_1px.s"
